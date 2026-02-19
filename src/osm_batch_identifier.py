@@ -113,6 +113,19 @@ def _build_batch_poi_query(region_key: str) -> str:
   node["amenity"="fuel"]["name"]["brand"]({b});
   way["craft"]["name"]({b});
   node["office"~"(company|industrial)"]["name"]({b});
+  way["amenity"~"(fuel|loading_dock|warehouse)"]["name"]({b});
+  node["shop"~"(trade|wholesale|hardware)"]["name"]({b});
+  way["shop"~"(trade|wholesale|hardware)"]["name"]({b});
+  node["company"]["name"]({b});
+  way["company"]["name"]({b});
+  way["building"]["operator"]({b});
+  node["man_made"~"(petroleum_well|wastewater_plant|water_works|pumping_station)"]["name"]({b});
+  way["man_made"~"(petroleum_well|wastewater_plant|water_works|pumping_station)"]["name"]({b});
+  way["power"~"(plant|substation|generator)"]["name"]({b});
+  node["power"~"(plant|substation|generator)"]["name"]({b});
+  way["landuse"~"(quarry|railway|commercial)"]["name"]({b});
+  node["amenity"="recycling"]["name"]({b});
+  way["amenity"="recycling"]["name"]({b});
 );
 out center;"""
 
@@ -124,7 +137,7 @@ def fetch_all_pois(region_key: str) -> List[dict]:
     Returns:
         List of OSM elements with lat/lon and tags.
     """
-    cache_key = {"region": region_key, "type": "batch_poi_v2"}
+    cache_key = {"region": region_key, "type": "batch_poi_v3"}
     cached = poi_cache.get(cache_key)
     if cached is not None:
         logger.info(f"Using cached batch POI data ({len(cached)} features)")
@@ -164,7 +177,7 @@ def fetch_all_pois(region_key: str) -> List[dict]:
 def match_pois_to_endpoints(
     pois: List[dict],
     endpoints: List[SpurEndpoint],
-    max_distance_m: float = 300.0,
+    max_distance_m: float = 500.0,
 ) -> Dict[int, List[Tuple[dict, float]]]:
     """
     Match POIs to nearby spur endpoints using brute-force distance calculation.
@@ -230,7 +243,7 @@ def reverse_geocode_nominatim(lat: float, lon: float) -> Optional[dict]:
 def identify_companies_at_endpoints(
     endpoints: List[SpurEndpoint],
     region_key: str = "illinois",
-    max_distance_m: float = 300.0,
+    max_distance_m: float = 500.0,
     use_nominatim: bool = False,
 ) -> List[IdentifiedCompany]:
     """
@@ -271,7 +284,7 @@ def identify_companies_at_endpoints(
 
         best_poi, best_dist = poi_matches[0]
         tags = best_poi.get("tags", {})
-        name = tags.get("name", "")
+        name = tags.get("name", "") or tags.get("operator", "") or tags.get("brand", "")
         if not name:
             continue
 
